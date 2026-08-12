@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة رصيد الإجازات السنوية</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f0ff, #e8f0fe, #fef9e7);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .container {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(200,180,230,0.25);
+    border-radius: 28px;
+    padding: 40px 35px;
+    max-width: 920px;
+    width: 100%;
+    box-shadow: 0 12px 48px rgba(120,90,180,0.12);
+  }
+  h1 { color: #4a3a6b; font-size: 27px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .promo-badge {
+    background: linear-gradient(135deg, #e8d5ff, #d4e4ff);
+    color: #4a3a6b; text-align: center; padding: 12px 20px; border-radius: 16px;
+    margin-bottom: 28px; font-size: 15px; font-weight: 600;
+    border: 1px solid rgba(120,90,180,0.12); line-height: 1.7;
+  }
+  .promo-badge .highlight { color: #6a4a9a; font-weight: 800; }
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; margin-bottom: 26px;
+  }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group.full { grid-column: span 2; }
+  label {
+    color: #4a3a6b; font-size: 14px; font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  label .hint { font-weight: 400; font-size: 12px; color: #8a7aaa; }
+  input[type="text"], input[type="number"] {
+    background: rgba(245,240,255,0.6); border: 1px solid #d8cce8; border-radius: 12px;
+    padding: 12px 16px; font-size: 15px; color: #3a2a5a; transition: all 0.25s;
+    font-family: inherit; outline: none; width: 100%;
+  }
+  input:focus {
+    border-color: #9a7aba; box-shadow: 0 0 0 3px rgba(120,90,180,0.15);
+    background: rgba(245,240,255,0.8);
+  }
+  input::placeholder { color: #a090b8; }
+  .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 2px; }
+  .checkbox-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: #7a5a9a; cursor: pointer; padding: 0; }
+  .checkbox-item label { margin-bottom: 0; cursor: pointer; font-weight: 500; font-size: 14px; }
+
+  .btn-calc {
+    grid-column: span 2;
+    background: linear-gradient(135deg, #9a7aba, #7a5a9a); border: none; border-radius: 14px;
+    padding: 16px 20px; font-size: 18px; font-weight: 700; color: #fff; cursor: pointer;
+    transition: all 0.3s; box-shadow: 0 6px 20px rgba(120,90,180,0.25); margin-top: 6px;
+  }
+  .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(120,90,180,0.35); }
+  .btn-calc:active { transform: translateY(0); }
+
+  .result-container { display: none; margin-top: 28px; background: rgba(245,240,255,0.4); border-radius: 20px; padding: 28px; border: 1px solid rgba(200,180,230,0.2); animation: fadeIn 0.5s ease; }
+  .result-container.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .result-header h2 { color: #4a3a6b; font-size: 22px; }
+  .result-badge {
+    background: linear-gradient(135deg, #d4c4f0, #b8a0d8); padding: 8px 24px; border-radius: 40px;
+    font-size: 28px; font-weight: 800; color: #3a2a5a; box-shadow: 0 4px 12px rgba(120,90,180,0.15);
+  }
+  .result-badge small { font-size: 16px; font-weight: 500; }
+  .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .detail-item {
+    background: rgba(255,255,255,0.6); padding: 14px 18px; border-radius: 12px;
+    border: 1px solid rgba(200,180,230,0.15); display: flex; justify-content: space-between; align-items: center;
+  }
+  .detail-item .label { color: #7a6a8a; font-size: 13px; font-weight: 500; }
+  .detail-item .value { color: #3a2a5a; font-size: 16px; font-weight: 700; }
+  .detail-item .value.highlight { color: #6a4a9a; }
+
+  .accrual-table {
+    grid-column: span 2; background: rgba(255,255,255,0.5); border-radius: 12px;
+    border: 1px solid rgba(200,180,230,0.15); overflow: hidden; margin-top: 2px;
+  }
+  .accrual-table .table-header {
+    background: rgba(200,180,230,0.2); padding: 12px 18px; font-size: 13px;
+    font-weight: 700; color: #4a3a6b; border-bottom: 1px solid rgba(200,180,230,0.15);
+  }
+  .accrual-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .accrual-table td { padding: 10px 18px; border-bottom: 1px solid rgba(200,180,230,0.08); color: #3a2a5a; }
+  .accrual-table td:last-child { text-align: left; font-weight: 600; }
+  .accrual-table tr:last-child td { border-bottom: none; }
+  .accrual-table tr.total-row td { font-weight: 700; color: #4a3a6b; background: rgba(180,200,255,0.1); border-top: 2px solid rgba(200,180,230,0.2); }
+  .accrual-table .badge-tier { font-size: 12px; background: rgba(120,90,180,0.12); padding: 2px 10px; border-radius: 20px; color: #5a3a8a; font-weight: 600; }
+  .accrual-table .year-header td { background: rgba(120,90,180,0.06); font-weight: 700; color: #4a3a6b; font-size: 15px; border-bottom: 1px solid rgba(200,180,230,0.12); }
+
+  .reason-box {
+    grid-column: span 2; background: rgba(200,180,230,0.15);
+    border: 1px solid rgba(180,160,220,0.2); border-radius: 12px; padding: 16px 20px; margin-top: 8px;
+  }
+  .reason-box .label { color: #7a6a8a; font-size: 13px; margin-bottom: 6px; }
+  .reason-box .value { color: #4a3a6b; font-size: 15px; line-height: 1.7; }
+
+  .promo-footer { text-align: center; margin-top: 22px; color: #8a7aaa; font-size: 13px; border-top: 1px solid rgba(200,180,230,0.2); padding-top: 18px; font-weight: 500; }
+  .promo-footer .brand { color: #6a4a9a; font-weight: 700; }
+
+  .error-msg {
+    grid-column: span 2; background: rgba(255,200,200,0.25); border: 1px solid rgba(220,150,150,0.3);
+    color: #8a3a3a; padding: 12px 18px; border-radius: 12px; font-size: 14px; display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px; }
+    h1 { font-size: 21px; }
+    .form-grid { grid-template-columns: 1fr; gap: 14px; }
+    .form-group.full { grid-column: span 1; }
+    .btn-calc { grid-column: span 1; }
+    .error-msg { grid-column: span 1; }
+    .result-details { grid-template-columns: 1fr; }
+    .accrual-table { grid-column: span 1; }
+    .reason-box { grid-column: span 1; }
+    .result-header { flex-direction: column; align-items: stretch; text-align: center; }
+    .result-badge { text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏖️ حاسبة رصيد الإجازات السنوية</h1>
+
+  <div class="promo-badge">
+    ✨ <span class="highlight">مخصوص للمتدربين مع حازم موسى</span> في برامج
+    <span class="highlight">شئون العاملين والمرتبات</span> 🎯<br>
+    أداة عملية لتطبيق المادة (124) من قانون العمل المصري
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group full">
+      <label>📅 تاريخ الالتحاق بالعمل <span class="hint">(مثال: 01/09/2025)</span></label>
+      <input type="text" id="hireDate" placeholder="يوم / شهر / سنة" dir="ltr" style="text-align:left;">
+    </div>
+
+    <div class="form-group full">
+      <label>📂 سنوات الخبرة السابقة <span class="hint">(تُضاف إلى سنوات الخدمة)</span></label>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="number" id="prevExperience" min="0" max="60" value="0" style="width: 100px;">
+        <span style="color: #7a6a8a; font-size:14px;">سنة</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>🎂 تاريخ الميلاد <span class="hint">(اختياري - مثال: 20/5/1990)</span></label>
+      <input type="text" id="birthDate" placeholder="يوم / شهر / سنة" dir="ltr" style="text-align:left;">
+    </div>
+
+    <div class="form-group">
+      <label>📆 تاريخ آخر يوم للسنة المراد الحساب لها <span class="hint">(مثال: 31/12/2026)</span></label>
+      <input type="text" id="calcDate" placeholder="يوم / شهر / سنة" dir="ltr" style="text-align:left;">
+    </div>
+
+    <div class="form-group">
+      <label>🧑‍🦽 فئات خاصة</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="isDisabled">
+          <label for="isDisabled">شخص من ذوي الهمم</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="isDwarf">
+          <label for="isDwarf">قزم</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>⚠️ طبيعة العمل</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="isHazardous">
+          <label for="isHazardous">عمل خطر / مضر بالصحة / مناطق نائية</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <button class="btn-calc" onclick="calculate()">💫 احسب رصيد الإجازات</button>
+  </div>
+
+  <!-- النتيجة -->
+  <div class="result-container" id="resultContainer">
+    <div class="result-header">
+      <h2>📋 نتيجة الحساب</h2>
+      <div class="result-badge" id="resultDays">0 <small>يوم / سنوياً</small></div>
+    </div>
+    <div class="result-details">
+      <div class="detail-item">
+        <span class="label">مدة الخدمة الفعلية</span>
+        <span class="value" id="rService">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">📅 تاريخ استحقاق الرصيد (بعد 6 أشهر من التعيين)</span>
+        <span class="value highlight" id="rEligibilityDate">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">السن وقت الحساب</span>
+        <span class="value" id="rAge">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">الرصيد السنوي المستحق (للعام الحالي كاملاً)</span>
+        <span class="value highlight" id="rBase">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">إضافة الأعمال الخطرة</span>
+        <span class="value highlight" id="rHazard">—</span>
+      </div>
+
+      <!-- جدول التوزيع التراكمي -->
+      <div class="accrual-table">
+        <div class="table-header">📊 رصيد الإجازات حسب السنوات الميلادية</div>
+        <table>
+          <tbody id="accrualBody"></tbody>
+        </table>
+      </div>
+
+      <div class="reason-box">
+        <div class="label">🔍 الأساس القانوني</div>
+        <div class="value" id="rReason">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="promo-footer">
+    🌟 <span class="brand">حازم موسى</span> — تدريب شئون العاملين والمرتبات | تطبيق عملي للمادة (124)
+  </div>
+</div>
+
+<script>
+// ===================== تعيين القيم الافتراضية =====================
+(function setDefaults() {
+  const today = new Date();
+  const d = String(today.getDate()).padStart(2, '0');
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const y = today.getFullYear();
+
+  // تاريخ التعيين 01/09/2025
+  document.getElementById('hireDate').value = '01/09/2025';
+  // تاريخ آخر يوم للسنة 31/12/2026
+  document.getElementById('calcDate').value = '31/12/2026';
+  // تاريخ الميلاد 30 سنة
+  const birth = new Date(today);
+  birth.setFullYear(y - 30);
+  const d3 = String(birth.getDate()).padStart(2, '0');
+  const m3 = String(birth.getMonth() + 1).padStart(2, '0');
+  document.getElementById('birthDate').value = d3 + '/' + m3 + '/' + birth.getFullYear();
+})();
+
+// ===================== دوال مساعدة =====================
+
+function parseDate(str) {
+  if (!str || str.trim() === '') return null;
+  const parts = str.trim().split('/');
+  if (parts.length !== 3) return null;
+  const d = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const y = parseInt(parts[2], 10);
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  return new Date(y, m - 1, d);
+}
+
+function getAge(birth, calcDate) {
+  let age = calcDate.getFullYear() - birth.getFullYear();
+  const m = calcDate.getMonth() - birth.getMonth();
+  const d = calcDate.getDate() - birth.getDate();
+  if (m < 0 || (m === 0 && d < 0)) age--;
+  return age;
+}
+
+function formatEligibilityDate(hireDate) {
+  const d = new Date(hireDate);
+  d.setMonth(d.getMonth() + 6);
+  return String(d.getDate()).padStart(2, '0') + '/' +
+         String(d.getMonth() + 1).padStart(2, '0') + '/' +
+         d.getFullYear();
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('resultContainer').classList.remove('visible');
+}
+
+/**
+ * تحديد الرصيد السنوي حسب إجمالي سنوات الخبرة (خدمة + خبرة سابقة) والعمر والفئات الخاصة
+ * هذه الدالة تُستخدم للحساب التراكمي الشهري الدقيق
+ */
+function getLeaveRate(totalYearsWithPrevExp, age, isSpecialNeeds) {
+  if (isSpecialNeeds) return 45;
+  if (totalYearsWithPrevExp >= 10 || (age !== null && age >= 50)) return 30;
+  if (totalYearsWithPrevExp >= 1) return 21;  // اعتباراً من السنة الثانية = بعد إتمام سنة واحدة
+  return 15;
+}
+
+/**
+ * عرض الرصيد السنوي — يعرض معدل آخر سنة خدمية مكتملة
+ */
+function getDisplayRate(svcYearsCompleted, prevExp, age, isSpecialNeeds) {
+  const totalExp = svcYearsCompleted + prevExp;
+  if (isSpecialNeeds) return 45;
+  if (totalExp >= 10 || (age !== null && age >= 50)) return 30;
+  if (totalExp >= 2) return 21;   // كمل سنتين كاملتين فأكثر → 21
+  return 15;                       // أقل من سنتين → 15 (السنة الأولى أو أقل)
+}
+
+/**
+ * الحساب الأساسي: يقسم مدة الخدمة إلى أجزاء حسب السنة الميلادية والسنة الخدمية
+ * ويعيد الرصيد التراكمي مفصل حسب كل سنة ميلادية
+ */
+function calculateAccrualByCalendarYear(hireDate, calcDate, prevExp, age, isSpecialNeeds, hazardExtra) {
+  const hireY = hireDate.getFullYear();
+  const hireM = hireDate.getMonth();   // 0-indexed
+  const hireD = hireDate.getDate();
+  const calcY = calcDate.getFullYear();
+  const calcM = calcDate.getMonth();
+
+  // دالة مساعدة لآخر يوم في الشهر
+  function lastDayOfMonth(y, m) {
+    return new Date(y, m + 1, 0).getDate();
+  }
+
+  function formatDate(y, m, d) {
+    return String(d).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
+  }
+
+  const annualRows = [];  // كل سنة ميلادية و segments بتوعها
+  let totalAccrued = 0;
+
+  for (let y = hireY; y <= calcY; y++) {
+    // أول شهر عمل في هذه السنة الميلادية
+    const firstM = (y === hireY) ? hireM : 0;
+    // آخر شهر عمل في هذه السنة الميلادية
+    const lastM = (y === calcY) ? calcM : 11;
+
+    if (firstM > lastM) continue;
+
+    // نقسم شهور السنة الميلادية حسب السنة الخدمية
+    const segments = [];
+
+    for (let m = firstM; m <= lastM; m++) {
+      const monthsElapsed = (y - hireY) * 12 + (m - hireM);
+      const serviceYear = Math.floor(monthsElapsed / 12) + 1;
+      const completedYears = (serviceYear - 1) + prevExp;
+      const rate = getLeaveRate(completedYears, age, isSpecialNeeds);
+      const monthlyRate = (rate + hazardExtra) / 12;
+
+      // تاريخ بداية ونهاية الشهر
+      const startD = (m === firstM && y === hireY) ? hireD : 1;
+      const endD = (m === lastM && y === calcY) ? calcDate.getDate() : lastDayOfMonth(y, m);
+
+      segments.push({
+        month: m,
+        serviceYear: serviceYear,
+        rate: rate,
+        monthlyRate: monthlyRate,
+        startDay: startD,
+        endDay: endD,
+      });
+    }
+
+    // دمج الشهور المتجاورة
+    const mergedSegments = [];
+    let current = null;
+
+    for (const seg of segments) {
+      if (current && current.serviceYear === seg.serviceYear && current.rate === seg.rate) {
+        current.months++;
+        current.accrued += seg.monthlyRate;
+        current.endDay = seg.endDay;
+        current.endMonth = seg.month;
+        current.endYear = y;
+      } else {
+        if (current) mergedSegments.push(current);
+        current = {
+          serviceYear: seg.serviceYear,
+          rate: seg.rate,
+          months: 1,
+          accrued: seg.monthlyRate,
+          startDay: seg.startDay,
+          startMonth: seg.month,
+          startYear: y,
+          endDay: seg.endDay,
+          endMonth: seg.month,
+          endYear: y,
+        };
+      }
+    }
+    if (current) mergedSegments.push(current);
+
+    // حساب الإجمالي بدون تقريب (إظهار القيم الفعلية)
+    let yearTotal = 0;
+    for (const seg of mergedSegments) {
+      yearTotal += seg.accrued;
+      // تكوين نص التاريخ للعرض
+      seg.dateRange = formatDate(seg.startYear, seg.startMonth, seg.startDay) + ' → ' +
+                      formatDate(seg.endYear, seg.endMonth, seg.endDay);
+    }
+    totalAccrued += yearTotal;
+
+    annualRows.push({
+      year: y,
+      segments: mergedSegments,
+      yearTotal: yearTotal,
+    });
+  }
+
+  return { annualRows, totalAccrued: totalAccrued };
+}
+
+// ===================== الحساب الرئيسي =====================
+
+function calculate() {
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.classList.remove('visible');
+  errorEl.textContent = '';
+
+  const hireStr = document.getElementById('hireDate').value;
+  const birthStr = document.getElementById('birthDate').value;
+  const calcStr = document.getElementById('calcDate').value;
+
+  if (!hireStr || hireStr.trim() === '') { showError('يرجى إدخال تاريخ الالتحاق بالعمل'); return; }
+  if (!calcStr || calcStr.trim() === '') { showError('يرجى إدخال تاريخ آخر يوم للسنة المراد الحساب لها'); return; }
+
+  const hireDate = parseDate(hireStr);
+  const calcDate = parseDate(calcStr);
+  const birthDate = parseDate(birthStr);
+
+  if (!hireDate) { showError('صيغة تاريخ الالتحاق غير صحيحة. استخدم اليوم/الشهر/السنة'); return; }
+  if (!calcDate) { showError('صيغة التاريخ غير صحيحة. استخدم اليوم/الشهر/السنة'); return; }
+  if (birthStr && birthStr.trim() !== '' && !birthDate) { showError('صيغة تاريخ الميلاد غير صحيحة'); return; }
+  if (hireDate > calcDate) { showError('تاريخ الالتحاق لا يمكن أن يكون بعد آخر يوم للسنة'); return; }
+  if (birthDate && birthDate > calcDate) { showError('تاريخ الميلاد لا يمكن أن يكون بعد آخر يوم للسنة'); return; }
+
+  const prevExp = parseInt(document.getElementById('prevExperience').value) || 0;
+  const isDisabled = document.getElementById('isDisabled').checked;
+  const isDwarf = document.getElementById('isDwarf').checked;
+  const isHazardous = document.getElementById('isHazardous').checked;
+  const isSpecialNeeds = isDisabled || isDwarf;
+
+  // حساب العمر
+  let age = null;
+  if (birthDate) age = getAge(birthDate, calcDate);
+
+  // حساب مدة الخدمة الفعلية بالأشهر (للتأكد من 6 أشهر)
+  const svcMonths = (calcDate.getFullYear() - hireDate.getFullYear()) * 12 +
+                    (calcDate.getMonth() - hireDate.getMonth());
+  // تقريب بإضافة شهر لو الأيام المتبقية 15+
+  let dayDiff = calcDate.getDate() - hireDate.getDate();
+  let totalMonthsActual = svcMonths + (dayDiff >= 15 ? 1 : 0);
+
+  if (totalMonthsActual < 6) {
+    showError('لم يكمل العامل 6 أشهر في الخدمة بعد، وبالتالي لا يستحق إجازة سنوية وفقاً للمادة (124).');
+    document.getElementById('resultContainer').classList.remove('visible');
+    return;
+  }
+
+  // إجمالي سنوات الخبرة للحساب
+  const svcYears = Math.floor(totalMonthsActual / 12);
+  const svcRemMonths = totalMonthsActual % 12;
+  const totalYearsWithExp = svcYears + prevExp;
+
+  // ================================================================
+  // 1. الرصيد السنوي المستحق للعام الحالي
+  // ================================================================
+  let baseLeave = getDisplayRate(svcYears, prevExp, age, isSpecialNeeds);
+  let reason = '';
+
+  if (isSpecialNeeds) {
+    reason = 'يستحق العامل 45 يوماً إجازة سنوية؛ لأنه من الأشخاص ذوي الهمم أو الأقزام (البند 4 من المادة 124).';
+  } else if (totalYearsWithExp >= 10 || (age !== null && age >= 50)) {
+    if (totalYearsWithExp >= 10 && age !== null && age >= 50)
+      reason = 'يستحق العامل 30 يوماً إجازة سنوية؛ لأنه أمضى ' + totalYearsWithExp + ' سنوات خدمة (بما في ذلك الخبرة السابقة) وتجاوز سن الخمسين (البند 3 من المادة 124).';
+    else if (totalYearsWithExp >= 10)
+      reason = 'يستحق العامل 30 يوماً إجازة سنوية؛ لأنه أمضى ' + totalYearsWithExp + ' سنوات خدمة (بما في ذلك الخبرة السابقة) (البند 3 من المادة 124).';
+    else
+      reason = 'يستحق العامل 30 يوماً إجازة سنوية؛ لأنه تجاوز سن الخمسين (عمره ' + age + ' سنة) (البند 3 من المادة 124).';
+  } else if (svcYears + prevExp >= 2) {
+    reason = 'يستحق العامل 21 يوماً إجازة سنوية؛ لأنه اعتباراً من السنة الثانية للخدمة (البند 2 من المادة 124).';
+  } else if (totalMonthsActual < 12) {
+    baseLeave = Math.round((15 * totalMonthsActual) / 12);
+    reason = 'يستحق العامل إجازة بنسبة المدة التي قضاها في العمل (' + totalMonthsActual + ' أشهر من 12 = ' + (totalMonthsActual/12*100).toFixed(1) + '%) بواقع ' + baseLeave + ' يوماً (البندان 1 و 5 من المادة 124).';
+  } else {
+    reason = 'يستحق العامل 15 يوماً إجازة سنوية؛ لأنه في السنة الأولى من الخدمة (البند 1 من المادة 124).';
+  }
+
+  let hazardExtra = 0;
+  if (isHazardous) {
+    hazardExtra = 7;
+    reason += ' بالإضافة إلى 7 أيام إجازة إضافية للعمل في الأعمال الخطرة أو المضرة بالصحة أو المناطق النائية (الفقرة الأخيرة من المادة 124).';
+  }
+
+  const totalAnnualLeave = baseLeave + hazardExtra;
+
+  // ================================================================
+  // 2. الحساب التراكمي بالسنوات الميلادية
+  // ================================================================
+  const { annualRows, totalAccrued } = calculateAccrualByCalendarYear(
+    hireDate, calcDate, prevExp, age, isSpecialNeeds, hazardExtra
+  );
+
+  // ================================================================
+  // عرض النتائج
+  // ================================================================
+
+  document.getElementById('resultDays').innerHTML = totalAnnualLeave + ' <small>يوم / سنوياً</small>';
+
+  // ملخص
+  let svcText = '';
+  if (svcYears > 0) {
+    svcText = svcYears + ' سنة';
+    if (svcRemMonths > 0) svcText += ' و' + svcRemMonths + ' أشهر';
+  } else {
+    svcText = totalMonthsActual + ' أشهر';
+  }
+  if (prevExp > 0) svcText += ' (بما في ذلك ' + prevExp + ' سنوات خبرة سابقة)';
+  document.getElementById('rService').textContent = svcText;
+  document.getElementById('rEligibilityDate').textContent = formatEligibilityDate(hireDate);
+  document.getElementById('rAge').textContent = age !== null ? age + ' سنة' : '— (لم يُدخل)';
+  document.getElementById('rBase').textContent = baseLeave + ' يوم';
+  document.getElementById('rHazard').textContent = hazardExtra > 0 ? '+' + hazardExtra + ' أيام' : 'لا توجد';
+
+  // جدول التوزيع حسب السنوات الميلادية
+  const tbody = document.getElementById('accrualBody');
+  tbody.innerHTML = '';
+
+  for (const row of annualRows) {
+    // صف عنوان السنة
+    const yrTr = document.createElement('tr');
+    yrTr.className = 'year-header';
+    yrTr.innerHTML = `<td>📅 سنة ${row.year}</td><td>إجمالي السنة: ${row.yearTotal.toFixed(1)} يوم</td>`;
+    tbody.appendChild(yrTr);
+
+    // صفوف الأجزاء داخل السنة
+    let segmentCounter = 0;
+    for (const seg of row.segments) {
+      segmentCounter++;
+      const segTr = document.createElement('tr');
+      const segMonths = seg.months;
+      const segLabel = (segMonths === 1) ? 'شهر واحد' : segMonths + ' أشهر';
+      const tierInfo = (seg.serviceYear === 1) ? 'السنة الخدمية الأولى' :
+                       (seg.serviceYear === 2) ? 'السنة الخدمية الثانية' :
+                       'السنة الخدمية رقم ' + seg.serviceYear;
+      segTr.innerHTML = `
+        <td style="font-size:13px;">${segLabel} في ${tierInfo}<br><span style="color:#7a6a8a;font-weight:400;font-size:12px;">📅 ${seg.dateRange}</span> <span class="badge-tier">${seg.rate + hazardExtra} يوم/سنوياً</span></td>
+        <td>${seg.accrued.toFixed(1)} يوم</td>
+      `;
+      tbody.appendChild(segTr);
+    }
+  }
+
+  // سطر الإجمالي النهائي
+  const totalTr = document.createElement('tr');
+  totalTr.className = 'total-row';
+  totalTr.innerHTML = `
+    <td>✅ الإجمالي التراكمي للإجازات المستحقة حتى آخر يوم للسنة</td>
+    <td style="font-size:18px;">${totalAccrued.toFixed(1)} يوم</td>
+  `;
+  tbody.appendChild(totalTr);
+
+  document.getElementById('rReason').textContent = reason;
+  document.getElementById('resultContainer').classList.add('visible');
+  document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0d0d184dfbdaa1e',t:'MTc4MTY4NjM0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
