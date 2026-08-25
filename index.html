@@ -57,6 +57,17 @@
   .checkbox-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: #7a5a9a; cursor: pointer; padding: 0; }
   .checkbox-item label { margin-bottom: 0; cursor: pointer; font-weight: 500; font-size: 14px; }
+  .experience-mode { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .mode-option { background:rgba(245,240,255,.7); border:1px solid #d8cce8; border-radius:12px; padding:9px 14px; cursor:pointer; }
+  .mode-option:has(input:checked) { border-color:#8a6aaa; background:#eee5fa; }
+  .mode-option input { accent-color:#7a5a9a; margin-left:6px; }
+  .experience-row { display:grid; grid-template-columns:1.2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:10px; padding:12px; background:rgba(245,240,255,.45); border-radius:12px; }
+  .experience-row label { display:block; margin:0; }
+  .btn-add, .btn-remove { border:0; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700; }
+  .btn-add { padding:10px 16px; color:#fff; background:#7a5a9a; margin-top:4px; }
+  .btn-remove { width:42px; height:42px; color:#8a3a3a; background:#f8dddd; font-size:18px; }
+  .experience-summary { margin-top:12px; padding:11px 14px; border-radius:10px; background:rgba(200,180,230,.15); color:#4a3a6b; font-size:14px; }
+  .hidden { display:none !important; }
 
   .btn-calc {
     grid-column: span 2;
@@ -130,6 +141,8 @@
     .reason-box { grid-column: span 1; }
     .result-header { flex-direction: column; align-items: stretch; text-align: center; }
     .result-badge { text-align: center; }
+    .experience-row { grid-template-columns:1fr; }
+    .btn-remove { width:100%; }
   }
 </style>
 </head>
@@ -151,10 +164,20 @@
     </div>
 
     <div class="form-group full">
-      <label>📂 سنوات الخبرة السابقة <span class="hint">(تُضاف إلى سنوات الخدمة)</span></label>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <input type="number" id="prevExperience" min="0" max="60" value="0" style="width: 100px;">
-        <span style="color: #7a6a8a; font-size:14px;">سنة</span>
+      <label>📂 الخبرات السابقة <span class="hint">(تُضاف إلى مدة الخدمة الحالية)</span></label>
+      <div class="experience-mode">
+        <label class="mode-option"><input type="radio" name="experienceMode" value="periods" checked onchange="toggleExperienceMode()">تفاصيل الشركات</label>
+        <label class="mode-option"><input type="radio" name="experienceMode" value="manual" onchange="toggleExperienceMode()">إجمالي يدوي</label>
+      </div>
+      <div id="periodsExperience">
+        <div id="experienceRows"></div>
+        <button type="button" class="btn-add" onclick="addExperienceRow()">＋ إضافة شركة سابقة</button>
+        <div class="experience-summary" id="experienceSummary">أدخل فترات العمل السابقة وسيُحسب الإجمالي تلقائيًا.</div>
+      </div>
+      <div id="manualExperience" class="hidden" style="display:grid;grid-template-columns:repeat(3,minmax(80px,130px));gap:12px;align-items:end;">
+        <label style="display:block;margin:0;">سنوات<input type="number" id="prevExpYears" min="0" max="60" value="0" inputmode="numeric"></label>
+        <label style="display:block;margin:0;">شهور<input type="number" id="prevExpMonths" min="0" max="11" value="0" inputmode="numeric"></label>
+        <label style="display:block;margin:0;">أيام<input type="number" id="prevExpDays" min="0" max="30" value="0" inputmode="numeric"></label>
       </div>
     </div>
 
@@ -223,10 +246,23 @@
         <span class="label">إضافة الأعمال الخطرة</span>
         <span class="value highlight" id="rHazard">—</span>
       </div>
+      <div class="detail-item">
+        <span class="label">تاريخ إكمال 10 سنوات خبرة</span>
+        <span class="value" id="rTenYearDate">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">فرق الرصيد بسبب إكمال 10 سنوات</span>
+        <span class="value highlight" id="rExperienceDifference">—</span>
+      </div>
+
+      <div class="accrual-table" id="experienceReport">
+        <div class="table-header">🏢 تفاصيل الخبرات السابقة</div>
+        <table><tbody id="experienceReportBody"></tbody></table>
+      </div>
 
       <!-- جدول التوزيع التراكمي -->
       <div class="accrual-table">
-        <div class="table-header">📊 رصيد الإجازات حسب السنوات الميلادية</div>
+        <div class="table-header">📊 رصيد الإجازات خلال السنة الميلادية المطلوبة</div>
         <table>
           <tbody id="accrualBody"></tbody>
         </table>
@@ -581,5 +617,369 @@ function calculate() {
   document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0d0d184dfbdaa1e',t:'MTc4MTY4NjM0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+<!-- منطق الحساب المصحح: حساب يومي دقيق مع فرق إكمال 10 سنوات خبرة -->
+<script>
+function parseDate(str) {
+  if (!str || !str.trim()) return null;
+  const match = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function formatDateValue(date) {
+  return String(date.getDate()).padStart(2, '0') + '/' +
+         String(date.getMonth() + 1).padStart(2, '0') + '/' + date.getFullYear();
+}
+
+function addMonthsClamped(date, months) {
+  const result = new Date(date.getFullYear(), date.getMonth(), 1);
+  result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(date.getDate(), lastDay));
+  return result;
+}
+
+function addYearsClamped(date, years) {
+  const result = new Date(date.getFullYear() + years, date.getMonth(), 1);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(date.getDate(), lastDay));
+  return result;
+}
+
+function formatEligibilityDate(hireDate) {
+  return formatDateValue(addMonthsClamped(hireDate, 6));
+}
+
+function completedServiceYears(hireDate, atDate) {
+  let years = atDate.getFullYear() - hireDate.getFullYear();
+  if (atDate < addYearsClamped(hireDate, years)) years--;
+  return Math.max(0, years);
+}
+
+function completedServiceMonths(hireDate, atDate) {
+  let months = (atDate.getFullYear() - hireDate.getFullYear()) * 12 + atDate.getMonth() - hireDate.getMonth();
+  if (atDate.getDate() < hireDate.getDate()) months--;
+  return Math.max(0, months);
+}
+
+function daysInYear(year) {
+  return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
+}
+
+let experienceRowCounter = 0;
+
+function toggleExperienceMode() {
+  const mode = document.querySelector('input[name="experienceMode"]:checked').value;
+  document.getElementById('periodsExperience').classList.toggle('hidden', mode !== 'periods');
+  document.getElementById('manualExperience').classList.toggle('hidden', mode !== 'manual');
+}
+
+function addExperienceRow() {
+  experienceRowCounter++;
+  const row = document.createElement('div');
+  row.className = 'experience-row';
+  row.dataset.row = experienceRowCounter;
+  row.innerHTML =
+    '<label>اسم الشركة <span class="hint">(اختياري)</span><input type="text" class="company-name" placeholder="اسم الشركة"></label>' +
+    '<label>من تاريخ<input type="text" class="company-start" placeholder="يوم/شهر/سنة" dir="ltr" style="text-align:left"></label>' +
+    '<label>إلى تاريخ<input type="text" class="company-end" placeholder="يوم/شهر/سنة" dir="ltr" style="text-align:left"></label>' +
+    '<button type="button" class="btn-remove" title="حذف الشركة" onclick="removeExperienceRow(this)">×</button>';
+  document.getElementById('experienceRows').appendChild(row);
+}
+
+function removeExperienceRow(button) {
+  button.closest('.experience-row').remove();
+  if (!document.querySelector('.experience-row')) addExperienceRow();
+}
+
+function durationFromDays(totalDays) {
+  const years = Math.floor(totalDays / 365);
+  const afterYears = totalDays % 365;
+  const months = Math.floor(afterYears / 30);
+  const days = afterYears % 30;
+  return { years, months, days };
+}
+
+function diffYmdInclusive(start, end) {
+  const exclusiveEnd = new Date(end);
+  exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+  let years = exclusiveEnd.getFullYear() - start.getFullYear();
+  if (addYearsClamped(start, years) > exclusiveEnd) years--;
+  const afterYears = addYearsClamped(start, years);
+  let months = (exclusiveEnd.getFullYear() - afterYears.getFullYear()) * 12 + exclusiveEnd.getMonth() - afterYears.getMonth();
+  if (addMonthsClamped(afterYears, months) > exclusiveEnd) months--;
+  const afterMonths = addMonthsClamped(afterYears, months);
+  const days = Math.round((exclusiveEnd - afterMonths) / 86400000);
+  return { years, months, days };
+}
+
+function collectPeriodExperience(hireDate) {
+  const periods = [];
+  const rows = document.querySelectorAll('.experience-row');
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
+    const name = row.querySelector('.company-name').value.trim() || 'شركة ' + (index + 1);
+    const startText = row.querySelector('.company-start').value.trim();
+    const endText = row.querySelector('.company-end').value.trim();
+    if (!startText && !endText) continue;
+    if (!startText || !endText) throw new Error('أكمل تاريخ البداية والنهاية في ' + name);
+    const start = parseDate(startText);
+    const end = parseDate(endText);
+    if (!start || !end) throw new Error('صيغة التاريخ غير صحيحة في ' + name);
+    if (end < start) throw new Error('تاريخ نهاية الخبرة أقدم من البداية في ' + name);
+    if (end >= hireDate) throw new Error('فترة ' + name + ' تتداخل مع تاريخ العمل الحالي');
+    const totalDays = Math.round((end - start) / 86400000) + 1;
+    periods.push({ name, start, end, totalDays, duration: diffYmdInclusive(start, end) });
+  }
+
+  const intervals = periods.map(p => ({ start: new Date(p.start), end: new Date(p.end) }))
+    .sort((a, b) => a.start - b.start);
+  const merged = [];
+  for (const interval of intervals) {
+    const previous = merged[merged.length - 1];
+    const dayAfterPrevious = previous ? new Date(previous.end) : null;
+    if (dayAfterPrevious) dayAfterPrevious.setDate(dayAfterPrevious.getDate() + 1);
+    if (previous && interval.start <= dayAfterPrevious) {
+      if (interval.end > previous.end) previous.end = new Date(interval.end);
+    } else {
+      merged.push({ start: new Date(interval.start), end: new Date(interval.end) });
+    }
+  }
+  const totalDays = merged.reduce((sum, p) => sum + Math.round((p.end - p.start) / 86400000) + 1, 0);
+  const normalized = merged.reduce((sum, p) => {
+    const duration = diffYmdInclusive(p.start, p.end);
+    sum.years += duration.years;
+    sum.months += duration.months;
+    sum.days += duration.days;
+    return sum;
+  }, { years: 0, months: 0, days: 0 });
+  normalized.months += Math.floor(normalized.days / 30);
+  normalized.days %= 30;
+  normalized.years += Math.floor(normalized.months / 12);
+  normalized.months %= 12;
+  return { mode: 'periods', periods, totalDays, years: normalized.years, months: normalized.months, days: normalized.days };
+}
+
+function getPreviousExperience(hireDate) {
+  const mode = document.querySelector('input[name="experienceMode"]:checked').value;
+  if (mode === 'periods') return collectPeriodExperience(hireDate);
+  const result = {
+    mode: 'manual', periods: [], totalDays: null,
+    years: Number(document.getElementById('prevExpYears').value || 0),
+    months: Number(document.getElementById('prevExpMonths').value || 0),
+    days: Number(document.getElementById('prevExpDays').value || 0)
+  };
+  if (!Number.isInteger(result.years) || result.years < 0 || result.years > 60) throw new Error('سنوات الخبرة السابقة يجب أن تكون من 0 إلى 60');
+  if (!Number.isInteger(result.months) || result.months < 0 || result.months > 11) throw new Error('شهور الخبرة السابقة يجب أن تكون من 0 إلى 11');
+  if (!Number.isInteger(result.days) || result.days < 0 || result.days > 30) throw new Error('أيام الخبرة السابقة يجب أن تكون من 0 إلى 30');
+  return result;
+}
+
+function calculateTenYearDate(hireDate, previousExperience) {
+  if (previousExperience.totalDays !== null) {
+    const tenYearAnniversary = addYearsClamped(hireDate, 10);
+    const targetDays = Math.round((tenYearAnniversary - hireDate) / 86400000);
+    const remainingDays = Math.max(0, targetDays - previousExperience.totalDays);
+    const result = new Date(hireDate);
+    result.setDate(result.getDate() + remainingDays);
+    return result;
+  }
+  if (previousExperience.years >= 10) return new Date(hireDate);
+  let result = addYearsClamped(hireDate, 10 - previousExperience.years);
+  result = addMonthsClamped(result, -previousExperience.months);
+  result.setDate(result.getDate() - previousExperience.days);
+  return result < hireDate ? new Date(hireDate) : result;
+}
+
+function formatDuration(years, months, days) {
+  const parts = [];
+  if (years) parts.push(years + ' سنة');
+  if (months) parts.push(months + ' شهر');
+  if (days) parts.push(days + ' يوم');
+  return parts.length ? parts.join(' و') : 'لا توجد';
+}
+
+function rateInfoAt(date, hireDate, birthDate, tenYearDate, isSpecialNeeds) {
+  const serviceYears = completedServiceYears(hireDate, date);
+  const hasTenYearsExperience = date >= tenYearDate;
+  const age = birthDate ? getAge(birthDate, date) : null;
+  if (isSpecialNeeds) return { rate: 45, tier: 'فئات خاصة', serviceYears, hasTenYearsExperience };
+  if (hasTenYearsExperience) return { rate: 30, tier: 'إكمال 10 سنوات خبرة', serviceYears, hasTenYearsExperience };
+  if (age !== null && age >= 50) return { rate: 30, tier: 'بلوغ سن الخمسين', serviceYears, hasTenYearsExperience };
+  if (serviceYears >= 1) return { rate: 21, tier: '21 يومًا سنويًا', serviceYears, hasTenYearsExperience };
+  return { rate: 15, tier: 'السنة الأولى', serviceYears, hasTenYearsExperience };
+}
+
+function calculateAccrualExact(hireDate, calcDate, birthDate, tenYearDate, isSpecialNeeds, hazardExtra) {
+  const years = new Map();
+  let totalAccrued = 0;
+  let experienceDifference = 0;
+  const firstDayOfSelectedYear = new Date(calcDate.getFullYear(), 0, 1);
+  let cursor = new Date(hireDate > firstDayOfSelectedYear ? hireDate : firstDayOfSelectedYear);
+  let activeSegment = null;
+
+  while (cursor <= calcDate) {
+    const info = rateInfoAt(cursor, hireDate, birthDate, tenYearDate, isSpecialNeeds);
+    const dailyAccrual = (info.rate + hazardExtra) / daysInYear(cursor.getFullYear());
+    const currentAge = birthDate ? getAge(birthDate, cursor) : null;
+    const experienceUpgrade = !isSpecialNeeds && info.hasTenYearsExperience && !(currentAge !== null && currentAge >= 50);
+    const rateWithoutExperienceUpgrade = info.serviceYears >= 1 ? 21 : 15;
+    const dailyDifference = experienceUpgrade ? (30 - rateWithoutExperienceUpgrade) / daysInYear(cursor.getFullYear()) : 0;
+    const key = cursor.getFullYear();
+    if (!years.has(key)) years.set(key, { year: key, segments: [], yearTotal: 0 });
+    const yearRow = years.get(key);
+    const signature = key + '|' + info.rate + '|' + info.tier + '|' + info.serviceYears;
+
+    if (!activeSegment || activeSegment.signature !== signature) {
+      activeSegment = {
+        signature, rate: info.rate, tier: info.tier, serviceYear: info.serviceYears + 1,
+        start: new Date(cursor), end: new Date(cursor), days: 0, accrued: 0,
+        experienceDifference: 0
+      };
+      yearRow.segments.push(activeSegment);
+    }
+    activeSegment.end = new Date(cursor);
+    activeSegment.days++;
+    activeSegment.accrued += dailyAccrual;
+    activeSegment.experienceDifference += dailyDifference;
+    yearRow.yearTotal += dailyAccrual;
+    totalAccrued += dailyAccrual;
+    experienceDifference += dailyDifference;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return { annualRows: Array.from(years.values()), totalAccrued, experienceDifference };
+}
+
+function calculate() {
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.classList.remove('visible');
+  errorEl.textContent = '';
+
+  const hireStr = document.getElementById('hireDate').value;
+  const birthStr = document.getElementById('birthDate').value;
+  const calcStr = document.getElementById('calcDate').value;
+  const hireDate = parseDate(hireStr);
+  const calcDate = parseDate(calcStr);
+  const birthDate = parseDate(birthStr);
+
+  if (!hireStr.trim()) return showError('يرجى إدخال تاريخ الالتحاق بالعمل');
+  if (!calcStr.trim()) return showError('يرجى إدخال تاريخ آخر يوم للسنة المراد الحساب لها');
+  if (!hireDate) return showError('تاريخ الالتحاق غير صحيح. استخدم اليوم/الشهر/السنة');
+  if (!calcDate) return showError('تاريخ الحساب غير صحيح. استخدم اليوم/الشهر/السنة');
+  if (birthStr.trim() && !birthDate) return showError('تاريخ الميلاد غير صحيح');
+  if (calcDate.getDate() !== 31 || calcDate.getMonth() !== 11)
+    return showError('لحساب السنة كاملة يجب أن يكون تاريخ نهاية الحساب 31/12 من السنة المطلوبة');
+  if (hireDate > calcDate) return showError('تاريخ الالتحاق لا يمكن أن يكون بعد تاريخ الحساب');
+  if (birthDate && birthDate > hireDate) return showError('تاريخ الميلاد لا يمكن أن يكون بعد تاريخ الالتحاق');
+
+  let previousExperience;
+  try {
+    previousExperience = getPreviousExperience(hireDate);
+  } catch (error) {
+    return showError(error.message);
+  }
+
+  const eligibilityDate = addMonthsClamped(hireDate, 6);
+  if (calcDate < eligibilityDate)
+    return showError('لم يكمل العامل 6 أشهر في الخدمة بعد. تاريخ الاستحقاق: ' + formatDateValue(eligibilityDate));
+
+  const isSpecialNeeds = document.getElementById('isDisabled').checked || document.getElementById('isDwarf').checked;
+  const hazardExtra = document.getElementById('isHazardous').checked ? 7 : 0;
+  const age = birthDate ? getAge(birthDate, calcDate) : null;
+  const tenYearDate = calculateTenYearDate(hireDate, previousExperience);
+  const currentInfo = rateInfoAt(calcDate, hireDate, birthDate, tenYearDate, isSpecialNeeds);
+  const result = calculateAccrualExact(hireDate, calcDate, birthDate, tenYearDate, isSpecialNeeds, hazardExtra);
+  const months = completedServiceMonths(hireDate, calcDate);
+  const serviceYears = Math.floor(months / 12);
+  const serviceMonths = months % 12;
+  const reachedTenYears = calcDate >= tenYearDate;
+
+  document.getElementById('resultDays').innerHTML = (currentInfo.rate + hazardExtra) + ' <small>يوم / سنويًا</small>';
+  let serviceText = serviceYears + ' سنة' + (serviceMonths ? ' و' + serviceMonths + ' أشهر' : '');
+  if (previousExperience.years || previousExperience.months || previousExperience.days)
+    serviceText += ' + خبرة سابقة: ' + formatDuration(previousExperience.years, previousExperience.months, previousExperience.days);
+  document.getElementById('rService').textContent = serviceText;
+  document.getElementById('rEligibilityDate').textContent = formatDateValue(eligibilityDate);
+  document.getElementById('rAge').textContent = age === null ? '— (لم يُدخل)' : age + ' سنة';
+  document.getElementById('rBase').textContent = currentInfo.rate + ' يوم';
+  document.getElementById('rHazard').textContent = hazardExtra ? '+' + hazardExtra + ' أيام' : 'لا توجد';
+  document.getElementById('rTenYearDate').textContent = formatDateValue(tenYearDate) + (reachedTenYears ? ' ✅' : ' (لم يصل بعد)');
+  document.getElementById('rExperienceDifference').textContent = reachedTenYears && !isSpecialNeeds
+    ? result.experienceDifference.toFixed(2) + ' يوم إضافي خلال السنة المطلوبة'
+    : 'لا يوجد فرق حتى تاريخ الحساب';
+
+  const experienceSummaryText = formatDuration(previousExperience.years, previousExperience.months, previousExperience.days) +
+    (previousExperience.totalDays !== null ? ' (' + previousExperience.totalDays + ' يوم فعلي غير متداخل)' : '');
+  document.getElementById('experienceSummary').textContent = 'إجمالي الخبرة السابقة: ' + experienceSummaryText;
+  const experienceReportBody = document.getElementById('experienceReportBody');
+  experienceReportBody.innerHTML = '';
+  document.getElementById('experienceReport').classList.toggle('hidden', previousExperience.mode !== 'periods');
+  for (const period of previousExperience.periods) {
+    const tr = document.createElement('tr');
+    const nameCell = document.createElement('td');
+    const valueCell = document.createElement('td');
+    nameCell.textContent = period.name + ' — ' + formatDateValue(period.start) + ' ← ' + formatDateValue(period.end);
+    valueCell.textContent = formatDuration(period.duration.years, period.duration.months, period.duration.days) + ' (' + period.totalDays + ' يوم)';
+    tr.append(nameCell, valueCell);
+    experienceReportBody.appendChild(tr);
+  }
+  if (previousExperience.mode === 'periods') {
+    const totalRow = document.createElement('tr');
+    totalRow.className = 'total-row';
+    totalRow.innerHTML = '<td>إجمالي الخبرة بعد حذف التداخلات</td><td>' + experienceSummaryText + '</td>';
+    experienceReportBody.appendChild(totalRow);
+  }
+
+  const tbody = document.getElementById('accrualBody');
+  tbody.innerHTML = '';
+  for (const row of result.annualRows) {
+    const header = document.createElement('tr');
+    header.className = 'year-header';
+    header.innerHTML = '<td>📅 سنة ' + row.year + '</td><td>إجمالي السنة: ' + row.yearTotal.toFixed(2) + ' يوم</td>';
+    tbody.appendChild(header);
+    for (const seg of row.segments) {
+      const tr = document.createElement('tr');
+      const differenceText = seg.experienceDifference > 0
+        ? '<br><strong style="color:#6a4a9a">فرق إكمال 10 سنوات: +' + seg.experienceDifference.toFixed(2) + ' يوم</strong>' : '';
+      tr.innerHTML = '<td style="font-size:13px">' + seg.tier + ' — ' + seg.days + ' يومًا' +
+        '<br><span style="color:#7a6a8a;font-size:12px">📅 ' + formatDateValue(seg.start) + ' ← ' + formatDateValue(seg.end) + '</span> ' +
+        '<span class="badge-tier">' + (seg.rate + hazardExtra) + ' يوم/سنويًا</span>' + differenceText + '</td>' +
+        '<td>' + seg.accrued.toFixed(2) + ' يوم</td>';
+      tbody.appendChild(tr);
+    }
+  }
+  const totalTr = document.createElement('tr');
+  totalTr.className = 'total-row';
+  totalTr.innerHTML = '<td>✅ إجمالي استحقاق السنة قبل خصم الإجازات المستخدمة</td><td style="font-size:18px">' + result.totalAccrued.toFixed(2) + ' يوم</td>';
+  tbody.appendChild(totalTr);
+
+  let reason = 'المعدل الحالي ' + currentInfo.rate + ' يومًا سنويًا (' + currentInfo.tier + ').';
+  if (reachedTenYears && !isSpecialNeeds && result.experienceDifference > 0) {
+    const rateBeforeTenYears = completedServiceYears(hireDate, tenYearDate) >= 1 ? 21 : 15;
+    reason += ' اكتملت 10 سنوات خبرة في ' + formatDateValue(tenYearDate) +
+      '، فارتفع المعدل من ' + rateBeforeTenYears + ' إلى 30 يومًا؛ والفرق المحتسب خلال السنة المطلوبة ' + result.experienceDifference.toFixed(2) + ' يوم.';
+  } else if (reachedTenYears && !isSpecialNeeds) {
+    reason += ' اكتملت 10 سنوات خبرة في ' + formatDateValue(tenYearDate) +
+      '، ولا يوجد فرق إضافي من الخبرة لأن معدل 30 يومًا مستحق بالفعل بسبب السن.';
+  } else if (!isSpecialNeeds) {
+    reason += ' سيكتمل إجمالي 10 سنوات خبرة في ' + formatDateValue(tenYearDate) + '.';
+  }
+  if (hazardExtra) reason += ' أضيفت 7 أيام سنويًا لطبيعة العمل المحددة.';
+  reason += ' الحساب خاص بالسنة الميلادية المطلوبة فقط وموزع يوميًا، وقد يختلف التقريب النهائي وفق سياسة جهة العمل.';
+  document.getElementById('rReason').textContent = reason;
+  document.getElementById('resultContainer').classList.add('visible');
+  document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+addExperienceRow();
+toggleExperienceMode();
+</script>
+</body>
 </html>
