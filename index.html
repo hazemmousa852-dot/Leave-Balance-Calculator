@@ -216,7 +216,7 @@
     </div>
 
     <div class="error-msg" id="errorMsg"></div>
-    <button class="btn-calc" onclick="calculate()">💫 احسب رصيد الإجازات</button>
+    <button type="button" class="btn-calc" onclick="calculate()">💫 احسب رصيد الإجازات</button>
   </div>
 
   <!-- النتيجة -->
@@ -519,6 +519,22 @@ function calculateAccrualExact(hireDate, calcDate, birthDate, tenYearDate, isSpe
     cursor.setDate(cursor.getDate() + 1);
   }
   return { annualRows: Array.from(years.values()), totalAccrued, experienceDifference };
+}
+
+
+function getAge(birthDate, atDate) {
+  let age = atDate.getFullYear() - birthDate.getFullYear();
+  const birthdayThisYear = addYearsClamped(birthDate, age);
+  if (atDate < birthdayThisYear) age--;
+  return Math.max(0, age);
+}
+
+function showError(message) {
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.textContent = message;
+  errorEl.classList.add('visible');
+  document.getElementById('resultContainer').classList.remove('visible');
+  errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function calculate() {
