@@ -284,6 +284,10 @@
         <div class="label">🔍 الأساس القانوني</div>
         <div class="value" id="rReason">—</div>
       </div>
+      <div class="detail-item">
+        <span class="label">إجمالي فترة الخدمة (شامل الخبرة السابقة)</span>
+        <span class="value highlight" id="rTotalService">—</span>
+      </div>
     </div>
   </div>
 
@@ -603,6 +607,10 @@ function calculate() {
   if (previousExperience.years || previousExperience.months || previousExperience.days)
     serviceText += ' + خبرة سابقة: ' + formatDuration(previousExperience.years, previousExperience.months, previousExperience.days);
   document.getElementById('rService').textContent = serviceText;
+  const totalServiceMonths = months + previousExperience.years * 12 + previousExperience.months;
+  document.getElementById('rTotalService').textContent = formatDuration(
+    Math.floor(totalServiceMonths / 12), totalServiceMonths % 12, previousExperience.days
+  );
   document.getElementById('rEligibilityDate').textContent = formatDateValue(eligibilityDate);
   document.getElementById('rAge').textContent = age === null ? '— (لم يُدخل)' : age + ' سنة';
   document.getElementById('rBase').textContent = currentInfo.rate + ' يوم';
